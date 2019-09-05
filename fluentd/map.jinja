@@ -1,42 +1,58 @@
-{% set fluentd = salt['grains.filter_by']({
-    'default': {
-        'version': None,
-        'service': 'fluentd',
-        'user': 'fluentd',
-        'group': 'fluentd',
-        'conf_file': '/etc/fluent/fluent.conf',
-        'global_log_level': 'info',
-        'nginx_config': {
-            'cert_file': 'fluentd.example.com.crt',
-            'key_file': 'fluentd.example.com.key'
-        },
-        'ssl_directory': '/etc/ssl',
-        'nginx_site_path': '/etc/nginx/sites-enabled'
-    },
-    'Debian': {
-        'pkgs': [
-            'ruby',
-            'ruby-dev',
-            'build-essential'
-        ]
-    },
-    'RedHat': {
-        'pkgs': [
-            'ruby',
-            'ruby-devel',
-            'gcc',
-            'make'
-        ]
-    },
-}, grain='os_family', merge=salt.pillar.get('fluentd:overrides'), base='default') %}
+##
+##
+##
 
-{% set fluentd_service = salt.grains.filter_by({
-    'systemd': {
-        'destination_path': '/etc/systemd/system/fluentd.service',
-        'source_path': 'fluentd.service',
-    },
-    'upstart': {
-        'destination_path': '/etc/init/fluentd.conf',
-        'source_path': 'fluentd.upstart',
-    }
-}, grain='init', merge=salt.pillar.get('fluentd:init_service')) %}
+
+
+##_META
+##
+
+
+
+## <JINJA>
+{%- set var_dct = {} %}
+{%- import_yaml tpldir ~ "/defaults.yml" as _defaults %}
+{%- set _discard = var_dct.update({"fluentd": _defaults.fluentd}) %}
+{#- hint: select data by os_family grain #}
+{%- set _discard = var_dct.fluentd.update(
+salt['grains.filter_by'](
+  lookup_dict=_defaults.lookup.os_family,
+  grain='os_family',
+  merge=salt['pillar.get']('', {}),
+  base='_base'))
+%}
+{#- hint: select data by install_method #}
+{%- set _discard = var_dct.fluentd.update(
+salt['pillar.filter_by'](
+  lookup_dict=_defaults.lookup.install_method,
+  pillar='fluentd:install_method',
+  merge=salt['pillar.get']('', {})))
+%}
+{#- hint: select data by init grain #}
+{%- set _discard = var_dct.fluentd.service.update(
+salt['grains.filter_by'](
+  lookup_dict=_defaults.lookup.init,
+  grain='init',
+  merge=salt['pillar.get']('fluentd:init_system', {})))
+%}
+{#- hint: interpolate the service name into the service path template string #}
+{%- set _discard = var_dct.fluentd.service.update({
+  "uri_service_file": var_dct.fluentd.service.uri_service_file_fstr|format(var_dct.fluentd.service.unit_name)
+})
+%}
+{#- hint: merge pillar://fluentd in on top of var_dct #}
+{%- set _discard = var_dct.fluentd.update(salt["pillar.get"]("fluentd", {})) %}
+{#- hint: compute list of unmanaged config files #}
+{%- set _discard = var_dct.fluentd.update({
+"config_managed_lst": var_dct.fluentd.configs|map(attribute='name')|list,
+"config_exists_lst": salt["file.find"](var_dct.fluentd.conf_dir ~ "/*.conf")|map('regex_replace', '.*\/(.*)\.conf', '\\1')|list,
+})
+%}
+
+
+
+## </JINJA>
+
+
+
+## EOF

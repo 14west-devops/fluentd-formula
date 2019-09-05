@@ -1,0 +1,80 @@
+##
+##
+##
+
+
+
+##_META
+##
+
+
+
+## <JINJA>
+## </JINJA>
+
+
+
+#
+fluentd:
+  enable: false
+  service: {}
+  #install_method: pkgrepo
+  #install_method: rubygem
+  install_method_lst:
+    - pkgrepo
+    - rubygem
+
+
+
+#
+lookup:
+  # Custom
+  install_method:
+    pkgrepo: &pkgrepo
+      install_method: pkgrepo
+      service:
+        unit_name: td-agent
+      conf_dir: /etc/td-agent/td-agent.d
+      conf_file: /etc/td-agent/td-agent.conf
+    rubygem: &rubygem
+      install_method: rubygem
+      service:
+        unit_name: fluentd
+      conf_dir: /etc/fluent/fluent.d
+      conf_file: /etc/fluent/fluent.conf
+    default:
+      <<: *pkgrepo  # hint: uses this fall-back value if not otherwise set
+  # Grains
+  os_family:
+    Debian:
+      pkgs:
+        - ruby
+        - ruby-dev
+        - build-essential
+    RedHat:
+      pkgs:
+        - ruby
+        - ruby-devel
+        - gcc
+        - make
+    _base:
+      version: None
+      user: fluentd
+      group: fluentd
+      global_log_level: info
+      nginx_config:
+        cert_file: fluentd.example.com.crt
+        key_file: fluentd.example.com.key
+      ssl_directory: /etc/ssl
+      nginx_site_path: /etc/nginx/sites-enabled
+  init:
+    systemd:
+      uri_service_file_fstr: /etc/systemd/system/%s.service
+      source_path: fluentd.service
+    upstart:
+      uri_service_file_fstr: /etc/init/%s.conf
+      source_path: fluentd.upstart
+
+
+
+## EOF

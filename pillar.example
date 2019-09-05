@@ -1,5 +1,7 @@
 fluentd:
   overrides:
+  install_method: pkgrepo
+  #use_gem: True
   ssl:
     cert_params:
       CN: fluentd.example.com
