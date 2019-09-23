@@ -47,7 +47,7 @@ add_fluent_{{ config.name }}_config:
 
 #
 {%- for config_name in var_dct.fluentd.config_exists_lst|difference(var_dct.fluentd.config_managed_lst) %}
-disable_unmanaged_config:
+"disable_unmanaged_config--?config_name={{ config_name }}":
   file.rename:
     - name: {{ var_dct.fluentd.conf_dir }}/{{ config_name }}.conf.disabled
     - source: {{ var_dct.fluentd.conf_dir }}/{{ config_name }}.conf
